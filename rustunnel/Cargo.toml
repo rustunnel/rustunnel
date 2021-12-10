@@ -15,7 +15,7 @@ clear_on_drop = "0.2"
 failure       = "0.1"
 libc          = "0.2"
 log           = { version = "0.4", features = ["std"] }
-nix           = "0.13"
+nix           = "0.23"
 openssl       = { rev = "ea6761d5e7b63b415b7fda6ba5c5026f4218bcd0", git = "https://github.com/signalapp/rust-openssl.git" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
@@ -26,8 +26,8 @@ cc = "1.0"
 
 [dev-dependencies]
 native-tls  = "=0.2.4"
-rand_core   = "0.5"
-rand_chacha = "0.2"
+rand_core   = "0.6"
+rand_chacha = "0.3"
 
 [[test]]
 name    = "client_child_test"

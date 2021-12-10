@@ -307,7 +307,7 @@ impl CaCertificate {
 // MidHandshakeTlsStream
 //
 
-impl<T> MidHandshakeTlsStream<T> {
+impl<T: Read + Write> MidHandshakeTlsStream<T> {
     pub fn handshake(self) -> Result<TlsStream<T>, HandshakeError<T>> {
         self.stream.handshake().map(TlsStream::new).map_err(HandshakeError::from)
     }

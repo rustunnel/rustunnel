@@ -8,7 +8,7 @@ license     = "AGPL-3.0-or-later"
 description = "Sandboxed TLS tunnel daemon"
 
 [dependencies]
-base64       = "0.10"
+base64       = "0.13"
 chrono       = "0.4"
 clap         = "2.33"
 failure      = "0.1"
@@ -16,9 +16,9 @@ futures      = "0.1"
 hyper        = { version = "0.12", optional = true }
 libc         = "0.2"
 log          = { version = "0.4", features = ["std"] }
-nix          = "0.13"
+nix          = "0.23"
 mio          = "0.6"
-regex        = "1.1"
+regex        = "1.5"
 serde        = "1.0"
 serde_derive = "1.0"
 serde_yaml   = "0.8"
@@ -27,5 +27,5 @@ tokio        = "0.1"
 rustunnel    = { path = "../rustunnel" }
 
 [dev-dependencies]
-rand_core   = "0.5"
-rand_chacha = "0.2"
+rand_core   = "0.6"
+rand_chacha = "0.3"

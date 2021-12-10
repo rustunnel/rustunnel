@@ -64,12 +64,12 @@ pub mod tls;
 #[doc(hidden)]
 pub mod util;
 
+use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::os::unix::prelude::*;
 
 use failure::ResultExt;
 use log::{debug, error, warn};
-use nix::errno::Errno;
 use nix::poll::*;
 
 use self::proxy::*;
@@ -222,12 +222,12 @@ impl ClientChild {
 // internal
 //
 
-fn handshake<T: AsRawFd>(mut accept_result: Result<TlsStream<T>, HandshakeError<T>>) -> Result<TlsStream<T>, ()> {
+fn handshake<T: AsRawFd + Read + Write>(mut accept_result: Result<TlsStream<T>, HandshakeError<T>>) -> Result<TlsStream<T>, ()> {
     loop {
         let (stream, poll_flags) = match accept_result {
             Ok(tls_stream) => return Ok(tls_stream),
-            Err(HandshakeError::WantRead(stream)) => (stream, EventFlags::POLLIN),
-            Err(HandshakeError::WantWrite(stream)) => (stream, EventFlags::POLLOUT),
+            Err(HandshakeError::WantRead(stream)) => (stream, PollFlags::POLLIN),
+            Err(HandshakeError::WantWrite(stream)) => (stream, PollFlags::POLLOUT),
             Err(HandshakeError::Failure(error)) => {
                 warn!("handshake error: {}", error);
                 return Err(());
@@ -238,7 +238,7 @@ fn handshake<T: AsRawFd>(mut accept_result: Result<TlsStream<T>, HandshakeError<
         // XXX handshake timeout
         match poll(&mut poll_fds, -1) {
             Ok(_event_count) => (),
-            Err(nix::Error::Sys(Errno::EINTR)) => (),
+            Err(nix::Error::EINTR) => (),
             Err(error) => {
                 error!("error polling sockets: {}", error);
                 return Err(());
@@ -259,8 +259,8 @@ fn proxy(
     let mut buffer_1 = ProxyBuffer::new();
 
     loop {
-        let mut stream_0_flags = EventFlags::empty();
-        let mut stream_1_flags = EventFlags::empty();
+        let mut stream_0_flags = PollFlags::empty();
+        let mut stream_1_flags = PollFlags::empty();
 
         let buffer_0_flags = buffer_0.proxy(stream_0_name, stream_0, stream_1_name, stream_1)?;
         stream_0_flags |= buffer_0_flags.0;
@@ -276,22 +276,22 @@ fn proxy(
 
         let stream_0_write_fd = stream_0.write_fd().unwrap_or(-1);
 
-        fn new_poll_fd(mut fd: RawFd, flags: EventFlags) -> PollFd {
+        fn new_poll_fd(mut fd: RawFd, flags: PollFlags) -> PollFd {
             if flags.is_empty() {
                 fd = -1;
             }
             PollFd::new(fd, flags)
         }
         let mut poll_fds = [
-            new_poll_fd(stream_0.read_fd(), stream_0_flags & EventFlags::POLLIN),
-            new_poll_fd(stream_0_write_fd, stream_0_flags & EventFlags::POLLOUT),
+            new_poll_fd(stream_0.read_fd(), stream_0_flags & PollFlags::POLLIN),
+            new_poll_fd(stream_0_write_fd, stream_0_flags & PollFlags::POLLOUT),
             new_poll_fd(stream_1.as_raw_fd(), stream_1_flags),
         ];
 
         debug!("polling: {:?}", &poll_fds);
         match poll(&mut poll_fds, -1) {
             Ok(_event_count) => (),
-            Err(nix::Error::Sys(Errno::EINTR)) => continue,
+            Err(nix::Error::EINTR) => continue,
             Err(error) => {
                 error!("error polling sockets: {}", error);
                 return Err(());
@@ -318,6 +318,7 @@ fn setup_sandbox() -> Result<(), failure::Error> {
 
 #[cfg(target_os = "linux")]
 fn setup_seccomp() -> Result<(), failure::Error> {
+    use nix::errno::Errno;
     use self::seccomp::*;
 
     macro_rules! cstr {

@@ -7,7 +7,6 @@ use std::path::Path;
 use std::panic;
 
 use failure::{format_err, ResultExt};
-use nix::errno::Errno;
 use nix::unistd;
 
 use crate::util;
@@ -44,7 +43,7 @@ pub fn close_all_fds(keep_fds: &BTreeSet<RawFd>) -> Result<(), failure::Error> {
     for fd in fds.difference(&keep_fds) {
         match unistd::close(*fd) {
             Ok(()) => (),
-            Err(nix::Error::Sys(Errno::EBADF)) => (),
+            Err(nix::Error::EBADF) => (),
             Err(error) => util::convert_nix(Err(error))?,
         }
     }

@@ -47,23 +47,23 @@ impl ProxyBuffer {
         in_stream: &mut impl ProxyRead,
         out_name: &'static str,
         out_stream: &mut impl ProxyWrite,
-    ) -> Result<(EventFlags, EventFlags), ()>
+    ) -> Result<(PollFlags, PollFlags), ()>
     {
         while !self.is_closed() {
             match self.proxy_read(in_name, in_stream) {
                 Ok(()) => (),
-                Err(ProxyStreamError::WantRead) => return Ok((EventFlags::POLLIN, EventFlags::empty())),
-                Err(ProxyStreamError::WantWrite) => return Ok((EventFlags::POLLOUT, EventFlags::empty())),
+                Err(ProxyStreamError::WantRead) => return Ok((PollFlags::POLLIN, PollFlags::empty())),
+                Err(ProxyStreamError::WantWrite) => return Ok((PollFlags::POLLOUT, PollFlags::empty())),
                 Err(ProxyStreamError::Io(_)) => return Err(()),
             }
             match self.proxy_write(out_name, out_stream) {
                 Ok(()) => (),
-                Err(ProxyStreamError::WantRead) => return Ok((EventFlags::empty(), EventFlags::POLLIN)),
-                Err(ProxyStreamError::WantWrite) => return Ok((EventFlags::empty(), EventFlags::POLLOUT)),
+                Err(ProxyStreamError::WantRead) => return Ok((PollFlags::empty(), PollFlags::POLLIN)),
+                Err(ProxyStreamError::WantWrite) => return Ok((PollFlags::empty(), PollFlags::POLLOUT)),
                 Err(ProxyStreamError::Io(_)) => return Err(()),
             }
         }
-        Ok((EventFlags::empty(), EventFlags::empty()))
+        Ok((PollFlags::empty(), PollFlags::empty()))
     }
 
     fn proxy_read(&mut self, in_name: &'static str, in_stream: &mut impl ProxyRead) -> Result<(), ProxyStreamError> {
