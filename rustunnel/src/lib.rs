@@ -340,6 +340,7 @@ fn setup_seccomp() -> Result<(), failure::Error> {
     let () = seccomp.allow(cstr!("exit_group"))?;
     let () = seccomp.allow(cstr!("sigreturn"))?;
     let () = seccomp.allow(cstr!("munmap"))?;
+    let () = seccomp.allow(cstr!("mremap"))?;
     let () = seccomp.allow(cstr!("brk"))?;
     let () = seccomp.allow(cstr!("futex"))?;
     let () = seccomp.allow(cstr!("restart_syscall"))?;
