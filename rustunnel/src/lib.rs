@@ -320,6 +320,7 @@ fn setup_sandbox() -> Result<(), failure::Error> {
 fn setup_seccomp() -> Result<(), failure::Error> {
     use nix::errno::Errno;
     use self::seccomp::*;
+    use self::seccomp::ArgumentComparisonOperation::*;
 
     macro_rules! cstr {
         ($str:literal) => {
@@ -339,6 +340,15 @@ fn setup_seccomp() -> Result<(), failure::Error> {
     let () = seccomp.allow(cstr!("exit"))?;
     let () = seccomp.allow(cstr!("exit_group"))?;
     let () = seccomp.allow(cstr!("sigreturn"))?;
+    const ALLOWED_MMAP_PROTECTION: u64 = libc::PROT_READ as u64 | libc::PROT_WRITE as u64;
+    const REQUIRED_MMAP_FLAGS: u64 = libc::MAP_ANON as u64;
+    let () = seccomp.allow_cmp(cstr!("mmap"), &[
+        ArgumentComparison { index: 0, operation: Equal(0) },
+        ArgumentComparison { index: 2, operation: MaskedEqual { mask: !ALLOWED_MMAP_PROTECTION, operand: 0 } },
+        ArgumentComparison { index: 3, operation: MaskedEqual { mask: REQUIRED_MMAP_FLAGS, operand: REQUIRED_MMAP_FLAGS } },
+        ArgumentComparison { index: 4, operation: Equal(-1i64 as u64) },
+        ArgumentComparison { index: 5, operation: Equal(0) },
+    ])?;
     let () = seccomp.allow(cstr!("munmap"))?;
     let () = seccomp.allow(cstr!("mremap"))?;
     let () = seccomp.allow(cstr!("brk"))?;
