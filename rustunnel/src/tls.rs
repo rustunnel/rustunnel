@@ -103,6 +103,13 @@ impl TlsAcceptor {
     pub fn new(tls_identity: Identity, tls_ca_cert: CaCertificate) -> Result<Self, failure::Error> {
         let mut acceptor = ssl::SslAcceptor::mozilla_intermediate_v5(ssl::SslMethod::tls()).context("error creating acceptor")?;
 
+        // replace the cert_store with a new empty one, since `SslConnector::builder` might in the future call
+        // `SSL_CTX_set_default_verify_paths` which would cause seccomp violations when openssl tries to load the system
+        // trusted certs automatically as a fallback (and redundantly, since we already load them manually if we're
+        // using them)
+        let empty_cert_store = x509::store::X509StoreBuilder::new().context("error creating empty certificate store")?;
+        acceptor.set_cert_store(empty_cert_store.build());
+
         acceptor
             .set_private_key(&tls_identity.pkcs12.pkey)
             .context("error setting server private key")?;
@@ -170,7 +177,15 @@ impl TlsConnector {
     ) -> Result<Self, failure::Error>
     {
         let mut connector =
-            ssl::SslConnector::builder_no_default_verify_paths(ssl::SslMethod::tls()).context("error creating connector")?;
+            ssl::SslConnector::builder(ssl::SslMethod::tls()).context("error creating connector")?;
+
+        // replace the cert_store with a new empty one, since `SslConnector::builder` calls
+        // `SSL_CTX_set_default_verify_paths` which causes seccomp violations when openssl tries to load the system
+        // trusted certs automatically as a fallback (and redundantly, since we already load them manually if we're
+        // using them)
+        let empty_cert_store = x509::store::X509StoreBuilder::new().context("error creating empty certificate store")?;
+        connector.set_cert_store(empty_cert_store.build());
+
         if let Some(tls_identity) = maybe_tls_identity {
             connector
                 .set_private_key(&tls_identity.pkcs12.pkey)
