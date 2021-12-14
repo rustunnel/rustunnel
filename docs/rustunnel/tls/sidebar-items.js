@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["CaCertificate","A TLS CA certificate specification."],["TlsHostname","A TLS hostname specification."]],"struct":[["Identity","A TLS identity, comprised of a certificate and private key."]]});
